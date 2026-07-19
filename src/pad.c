@@ -4,7 +4,6 @@
 #include "pad.h"
 #include "utils.h"
 
-
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 extern RemotePadService rps;
@@ -13,7 +12,6 @@ extern const RemotePadDriver dummyDriver;
 extern const RemotePadDriver wsDriver;
 extern const RemotePadDriver usbDriver;
 
-// Add to the driver registry table:
 static const RemotePadDriver *const padDrivers[] = {&dummyDriver, &wsDriver, &usbDriver};
 
 #define GET_PAD(handle) \
@@ -43,19 +41,16 @@ static const RemotePadDriver *const padDrivers[] = {&dummyDriver, &wsDriver, &us
 
 static int32_t init(void) {
     int ret;
-
     ret = scePthreadMutexInit(&rps.padMutex, 0, "padMtx");
     if (ret < 0) {
         final_printf("[JeloPad]: failed to init the pad mutex, 0x%X\n", ret);
         return -1;
     }
-
     ret = scePthreadMutexInit(&rps.dataMutex, 0, "dataMtx");
     if (ret < 0) {
         final_printf("[JeloPad]: failed to init the data mutex, 0x%X\n", ret);
         return -1;
     }
-
     for (int i = 0; i < REMOTE_PAD_MAX_PADS; i++) {
         rps.pads[i].index = i;
         rps.pads[i].handle = 1000 + i;
@@ -190,10 +185,11 @@ static int32_t padOpen(int32_t userId, int32_t type, int32_t index, void *param)
         return handle;
     }
 
-    // TODO: Choose driver based on configuration file
     rps.pads[index].userId = userId;
-    rps.pads[index].driver = &wsDriver;
+    // Default to USB for now, later make dynamic
+    rps.pads[index].driver = &usbDriver; 
     handle = rps.pads[index].handle;
+    final_printf("[JeloPad] Controller assigned: %s\n", rps.pads[index].driver->name);
 
     scePthreadMutexUnlock(&rps.padMutex);
     if (handle != 0)
