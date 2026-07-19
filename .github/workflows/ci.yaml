@@ -9,18 +9,13 @@ jobs:
     runs-on: ubuntu-latest
     container: xfangfang/goldhen_plugin:latest
     steps:
-      - name: Clean build directory
-        run: rm -rf build
-      
-      - name: Build
-        run: cmake --build build
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Build
+      - name: Setup build environment
         run: |
           git config --global --add safe.directory `pwd`
           
@@ -40,17 +35,18 @@ jobs:
           # Clear the pre-existing build directories within the SDK and its CRT subdirectory
           rm -rf lib/GoldHEN_Plugins_SDK/build
           rm -rf lib/GoldHEN_Plugins_SDK/crt/build
-          rm -rf lib/GoldHEN_Plugins_SDK/crt  # Also remove the entire crt directory to ensure clean state
+          rm -rf lib/GoldHEN_Plugins_SDK/crt
 
-          # Configure CMake bypassing compiler checks
+      - name: Configure CMake
+        run: |
           cmake -B build \
             -DCMAKE_TOOLCHAIN_FILE=cmake/ps4.cmake \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_C_COMPILER_WORKS=1 \
             -DCMAKE_CXX_COMPILER_WORKS=1
 
-          # Build target
-          cmake --build build
+      - name: Build
+        run: cmake --build build
 
       - name: Upload dist
         uses: actions/upload-artifact@v4
