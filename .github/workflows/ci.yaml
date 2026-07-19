@@ -9,6 +9,11 @@ jobs:
     runs-on: ubuntu-latest
     container: xfangfang/goldhen_plugin:latest
     steps:
+      - name: Clean build directory
+        run: rm -rf build
+      
+      - name: Build
+        run: cmake --build build
       - name: Checkout
         uses: actions/checkout@v4
         with:
