@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;" charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JeloPad</title>
+    <style>
+      body {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        margin: 0;
+        padding: 0;
+        touch-action: none;
+        font-family: system-ui, -apple-system, sans-serif;
+        background: #111;
+        color: #fff;
+      }
+      .info {
+        margin: 1.5vw;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 15px;
+      }
+      select, input, button {
+        color: #fff;
+        background: #222;
+        border: 1px solid #444;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 1.2vw;
+      }
+      input {
+        width: 15em;
+        text-align: center;
+      }
+      button {
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      button:hover {
+        background: #333;
+      }
+      #fs {
+        cursor: pointer;
+        padding: 8px 15px;
+        background: #222;
+        border: 1px solid #444;
+        border-radius: 6px;
+      }
+      .pad {
+        width: 25vw;
+        height: 25vw;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      .pad-top {
+        display: flex;
+        justify-content: center;
+      }
+      .pad-center {
+        display: flex;
+        justify-content: space-between;
+      }
+      .btn {
+        width: 8vw;
+        height: 8vw;
+        font-size: 2.5vw;
+        font-weight: bold;
+        background: #222;
+        border: 2px solid #444;
+        border-radius: 50%;
+        text-align: center;
+        color: #fff;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        transition: transform 0.05s, background 0.05s;
+      }
+      .btn:active {
+        transform: scale(0.95);
+        background: #444;
+      }
+      .btn span{
+        color: #888;
+        font-size: 0.5em;
+        display: block;
+      }
+      .gamepad-top {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        padding: 0 2vw;
+        box-sizing: border-box;
+      }
+      .gamepad-center {
+        width: 100%;
+        display: flex;
+        margin-top: 2vh;
+        justify-content: space-between;
+        position: relative;
+        padding: 0 2vw;
+        box-sizing: border-box;
+      }
+      #msg{
+        width: 50vw;
+        height: 10vw;
+        position: absolute;
+        left: 25vw;
+        bottom: 12vw;
+        text-align: center;
+        color: #00ffcc;
+        font-size: 1.5vw;
+        pointer-events: none;
+      }
+      .stick-area {
+        width: 50vw;
+        height: 20vw;
+        position: absolute;
+        bottom: -5vw;
+        left: 25vw;
+        display: flex;
+        justify-content: space-between;
+      }
+      .stick {
+        width: 18vw;
+        height: 18vw;
+        background-color: #222;
+        border: 2px solid #444;
+        border-radius: 50%;
+        position: relative;
+        color: #ccc;
+        font-size: 0.8em;
+      }
+      .stick-pad {
+        width: 8vw;
+        height: 8vw;
+        background-color: #555;
+        border: 2px solid #888;
+        border-radius: 50%;
+        position: absolute;
+        box-shadow: inset 0 2px 4px rgba(255,255,255,0.2);
+      }
+      .stick .top {
+        position: absolute;
+        top: 5px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      .stick .right {
+        position: absolute;
+        top: 50%;
+        right: 5px;
+        transform: translateY(-50%);
+      }
+      .stick .bottom {
+          position: absolute;
+          bottom: 5px;
+          left: 50%;
+          transform: translateX(-50%);
+      }
+      .stick .left {
+          position: absolute;
+          top: 50%;
+          left: 5px;
+          transform: translateY(-50%);
+      }
+      .touch {
+        width: 28vw;
+        height: 13vw;
+        position: relative;
+        top: -10vw;
+        border-radius: 12px;
+        border: 2px solid #444;
+        background-color: #1a1a1a;
+        background-image: radial-gradient(#444 1px, transparent 1px);
+        background-size: 10px 10px;
+      }
+      .touch span {
+        position: absolute;
+        font-size: 1vw;
+        color: #666;
+      }
+      .touch .top-left { top: 1vw; left: 1vw; }
+      .touch .top-right { top: 1vw; right: 1vw; }
+      .touch .bottom-left { bottom: 1vw; left: 1vw; }
+      .touch .bottom-right { bottom: 1vw; right: 1vw; }
+      .touch-point {
+        width: 2vw;
+        height: 2vw;
+        border-radius: 50%;
+        display: none;
+        background-color: #00ffcc;
+        position: absolute;
+        pointer-events: none;
+        box-shadow: 0 0 10px #00ffcc;
+      }
+      #version {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        font-size: 10px;
+        color: #444;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="info">
+      <select id="pad">
+        <option value="0">Port 0 (Pad0)</option>
+        <option value="1">Port 1 (Pad1)</option>
+        <option value="2">Port 2 (Pad2)</option>
+        <option value="3">Port 3 (Pad3)</option>
+      </select>
+      <label for="url">ws://</label>
+      <input id="url" type="text" placeholder="Type console server address" value="" />
+      <button id="connect">Connect Device</button>
+      <div id="fs">▣ Fullscreen</div>
+    </div>
+
+    <div class="gamepad-top">
+      <div>
+        <button class="btn" id="btnL1">L1</button>
+        <button class="btn" id="btnL2">L2</button>
+        <button class="btn" id="btnShare">S</button>
+      </div>
+      <div>
+        <button class="btn" id="btnOptions">O</button>
+        <button class="btn" id="btnR2">R2</button>
+        <button class="btn" id="btnR1">R1</button>
+      </div>
+    </div>
+    <div class="gamepad-center">
+      <div class="pad">
+        <div class="pad-top">
+          <button class="btn" id="btnUp">↑</button>
+        </div>
+        <div class="pad-center">
+          <button class="btn" id="btnLeft">←</button>
+          <button class="btn" id="btnL3">L3</button>
+          <button class="btn" id="btnRight">→</button>
+        </div>
+        <div class="pad-top">
+          <button class="btn" id="btnDown">↓</button>
+        </div>
+      </div>
+
+      <div class="btn touch" id="btnTouch">
+        <span class="top-left">T</span>
+        <span class="top-right">Y</span>
+        <span class="bottom-left">G</span>
+        <span class="bottom-right">H</span>
+        <div id="touch-point1" class="touch-point"></div>
+        <div id="touch-point2" class="touch-point"></div>
+      </div>
+
+      <div class="pad">
+        <div class="pad-top">
+          <button class="btn" id="btnTriangle">△</button>
+        </div>
+        <div class="pad-center">
+          <button class="btn" id="btnSquare">□</button>
+          <button class="btn" id="btnR3">R3</button>
+          <button class="btn" id="btnCircle">○</button>
+        </div>
+        <div class="pad-top">
+          <button class="btn" id="btnCross">X</button>
+        </div>
+      </div>
+
+      <span id="msg"></span>
+
+      <div class="stick-area">
+        <div class="stick" id="cl">
+          <div id="cl-pad" class="stick-pad"></div>
+          <span class="top">W</span>
+          <span class="right">D</span>
+          <span class="bottom">S</span>
+          <span class="left">A</span>
+        </div>
+        <div class="stick" id="cr">
+          <div id="cr-pad" class="stick-pad"></div>
+          <span class="top">↑</span>
+          <span class="right">→</span>
+          <span class="bottom">↓</span>
+          <span class="left">←</span>
+        </div>
+      </div>
+    </div>
+    <span id="version"></span>
+  </body>
+  <script>
+    const OrbisPadButton = {
+      ORBIS_PAD_BUTTON_SHARE: 0x0001,
+      ORBIS_PAD_BUTTON_L3: 0x0002,
+      ORBIS_PAD_BUTTON_R3: 0x0004,
+      ORBIS_PAD_BUTTON_OPTIONS: 0x0008,
+      ORBIS_PAD_BUTTON_UP: 0x0010,
+      ORBIS_PAD_BUTTON_RIGHT: 0x0020,
+      ORBIS_PAD_BUTTON_DOWN: 0x0040,
+      ORBIS_PAD_BUTTON_LEFT: 0x0080,
+      ORBIS_PAD_BUTTON_L2: 0x0100,
+      ORBIS_PAD_BUTTON_R2: 0x0200,
+      ORBIS_PAD_BUTTON_L1: 0x0400,
+      ORBIS_PAD_BUTTON_R1: 0x0800,
+      ORBIS_PAD_BUTTON_TRIANGLE: 0x1000,
+      ORBIS_PAD_BUTTON_CIRCLE: 0x2000,
+      ORBIS_PAD_BUTTON_CROSS: 0x4000,
+      ORBIS_PAD_BUTTON_SQUARE: 0x8000,
+      ORBIS_PAD_BUTTON_TOUCH_PAD: 0x100000
+    };
+    const MAX_TOUCH_PAD_WIDTH = 1919;
+    const MAX_TOUCH_PAD_HEIGHT = 941;
+    const MAX_TOUCH_ID = 127;
+
+    let rpc;
+    const JSONRPC_TIMEOUT_MS = 1000;
+
+    function jsonrpc(url, onopen, onclose, onnotification) {
+      var rpcid = 0, pending = {}, ws = new WebSocket(url);
+      if (!ws) return null;
+      ws.onclose = onclose;
+      ws.onmessage = function(ev) {
+        const frame = JSON.parse(ev.data);
+        if (frame.id !== undefined) {
+          if (pending[frame.id] !== undefined) pending[frame.id](frame);
+          delete (pending[frame.id]);
+        } else {
+          if (onnotification) onnotification(frame);
+        }
+      };
+      ws.onopen = function() {
+        if (onopen) onopen();
+      };
+      return {
+        close: () => ws.close(),
+        call: function(method, params) {
+          const id = rpcid++, request = {id, method, params};
+          ws.send(JSON.stringify(request));
+          return new Promise(function(resolve, reject) {
+            setTimeout(function() {
+              if (pending[id] === undefined) return;
+              delete (pending[id]);
+              reject();
+            }, JSONRPC_TIMEOUT_MS);
+            pending[id] = x => resolve(x);
+          });
+        },
+        callVoid: function(method, params) {
+          if (ws.readyState !== WebSocket.OPEN) return;
+          const request = {method, params};
+          ws.send(JSON.stringify(request));
+        },
+      };
+    }
+
+    function E(id) { return document.getElementById(id); }
+
+    const pad = E('pad');
+    const url = E('url');
+    const connect = E('connect');
+    const fs = E('fs');
+    const msg = E('msg');
+    const cl = E('cl');
+    const cr = E('cr');
+    const cl_pad = E('cl-pad');
+    const cr_pad = E('cr-pad');
+
+    const btn0 = E('btnCross');
+    const btn1 = E('btnCircle');
+    const btn2 = E('btnSquare');
+    const btn3 = E('btnTriangle');
+    const btn4 = E('btnL1');
+    const btn5 = E('btnR1');
+    const btn6 = E('btnL2');
+    const btn7 = E('btnR2');
+    const btn8 = E('btnShare');
+    const btn9 = E('btnOptions');
+    const btn10 = E('btnL3');
+    const btn11 = E('btnR3');
+    const btn12 = E('btnUp');
+    const btn13 = E('btnDown');
+    const btn14 = E('btnLeft');
+    const btn15 = E('btnRight');
+    const btn16 = E('btnTouch');
+
+    const touch1 = E('touch-point1');
+    const touch2 = E('touch-point2');
+
+    let lastUrl = localStorage.getItem('url');
+    url.value = lastUrl ? lastUrl : window.location.host;
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        let e = document.documentElement;
+        if (e.requestFullscreen) e.requestFullscreen();
+        else if (e.webkitRequestFullscreen) e.webkitRequestFullscreen();
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    }
+    fs.onclick = toggleFullscreen;
+
+    const btnMap = [
+      { btn: btn0, text: 'X', value: OrbisPadButton.ORBIS_PAD_BUTTON_CROSS },
+      { btn: btn1, text: '○', value: OrbisPadButton.ORBIS_PAD_BUTTON_CIRCLE },
+      { btn: btn2, text: '□', value: OrbisPadButton.ORBIS_PAD_BUTTON_SQUARE },
+      { btn: btn3, text: '△', value: OrbisPadButton.ORBIS_PAD_BUTTON_TRIANGLE },
+      { btn: btn4, text: 'L1', value: OrbisPadButton.ORBIS_PAD_BUTTON_L1 },
+      { btn: btn5, text: 'R1', value: OrbisPadButton.ORBIS_PAD_BUTTON_R1 },
+      { btn: btn6, text: 'L2', value: OrbisPadButton.ORBIS_PAD_BUTTON_L2 },
+      { btn: btn7, text: 'R2', value: OrbisPadButton.ORBIS_PAD_BUTTON_R2 },
+      { btn: btn8, text: 'S', value: OrbisPadButton.ORBIS_PAD_BUTTON_SHARE },
+      { btn: btn9, text: 'O', value: OrbisPadButton.ORBIS_PAD_BUTTON_OPTIONS },
+      { btn: btn10, text: 'L3', value: OrbisPadButton.ORBIS_PAD_BUTTON_L3 },
+      { btn: btn11, text: 'R3', value: OrbisPadButton.ORBIS_PAD_BUTTON_R3 },
+      { btn: btn12, text: '↑', value: OrbisPadButton.ORBIS_PAD_BUTTON_UP },
+      { btn: btn13, text: '↓', value: OrbisPadButton.ORBIS_PAD_BUTTON_DOWN },
+      { btn: btn14, text: '←', value: OrbisPadButton.ORBIS_PAD_BUTTON_LEFT },
+      { btn: btn15, text: '→', value: OrbisPadButton.ORBIS_PAD_BUTTON_RIGHT },
+      { btn: btn16, text: 'TouchPad', value: OrbisPadButton.ORBIS_PAD_BUTTON_TOUCH_PAD }
+    ];
+
+    const lightbarMap = [
+      [20, 80, 240],   // Neon Blue
+      [240, 20, 80],   // Neon Red
+      [20, 240, 80],   // Neon Green
+      [240, 80, 200]   // Neon Pink
+    ];
+
+    pad.addEventListener('change', () => { resetLightbar(); });
+
+    let GamepadButton = 0;
+    let touchPoint1X = 0, touchPoint1Y = 0, touchPoint2X = 0, touchPoint2Y = 0;
+    let touchPoint1MoveEnabled = false, touchPoint2MoveEnabled = false;
+    let touchPoint1MoveFinger = -1, touchPoint2MoveFinger = -1;
+    let touchPoint1Id = -1, touchPoint2Id = -1;
+    let touchPoint1Pressed = false, touchPoint2Pressed = false;
+    let touchPoint1PressedTime = 0, touchPoint2PressedTime = 0;
+    let leftStickX = 128, leftStickY = 128, rightStickX = 128, rightStickY = 128;
+    let left2 = 0, right2 = 0;
+    let lastSentData = [];
+
+    let MouseButton = 0;
+    let MouseLeftStickX = 128, MouseLeftStickY = 128, MouseRightStickX = 128, MouseRightStickY = 128;
+    const minHoldTime = 50;
+
+    function setGamePadStatus(enabled) {
+      for (let i = 0; i < btnMap.length; i++) {
+        btnMap[i].btn.disabled = !enabled;
+      }
+      url.disabled = enabled;
+      connect.innerHTML = enabled ? 'Disconnect' : 'Connect Device';
+      if (!enabled) rpc = null;
+    }
+    setGamePadStatus(false);
+
+    function toggleConnection() {
+      localStorage.setItem('url', url.value);
+      if (rpc) {
+        rpc.close();
+        rpc = null;
+        return;
+      }
+      rpc = jsonrpc("ws://" + url.value,
+        () => {
+          setGamePadStatus(true);
+          rpc.call('info', []).then((res) => {
+            E('version').innerHTML = "Server Version: " + res.result.version;
+          });
+        },
+        () => setGamePadStatus(false),
+        msg => {
+          if (msg.method === 'v') processVibration(msg.params);
+          else if (msg.method === 'l') processLightbar(msg.params);
+          else if (msg.method === 'rl') resetLightbar(msg.params);
+        });
+    }
+
+    connect.onclick = toggleConnection;
+    try { toggleConnection(); } catch (e) { console.error(e); }
+
+    function sendData() {
+      if (!rpc) return;
+
+      let left2_send = left2;
+      let right2_send = right2;
+      let button_send = GamepadButton;
+      let lsx = leftStickX;
+      let lsy = leftStickY;
+      let rsx = rightStickX;
+      let rsy = rightStickY;
+
+      button_send |= MouseButton;
+      if (MouseButton & OrbisPadButton.ORBIS_PAD_BUTTON_L2) left2_send = 255;
+      if (MouseButton & OrbisPadButton.ORBIS_PAD_BUTTON_R2) right2_send = 255;
+
+      if (MouseLeftStickX !== 128) lsx = MouseLeftStickX;
+      if (MouseLeftStickY !== 128) lsy = MouseLeftStickY;
+      if (MouseRightStickX !== 128) rsx = MouseRightStickX;
+      if (MouseRightStickY !== 128) rsy = MouseRightStickY;
+
+      for (let i = 0; i < btnMap.length; i++) {
+        if (btnMap[i].value === OrbisPadButton.ORBIS_PAD_BUTTON_TOUCH_PAD) continue;
+        if (button_send & btnMap[i].value) {
+          btnMap[i].btn.style.borderColor = '#00ffcc';
+          btnMap[i].btn.style.boxShadow = '0 0 10px #00ffcc';
+        } else {
+          btnMap[i].btn.style.borderColor = '#444';
+          btnMap[i].btn.style.boxShadow = 'none';
+        }
+      }
+
+      cl_pad.style.top = `${(lsy / 255 * 10)}vw`;
+      cl_pad.style.left = `${(lsx / 255 * 10)}vw`;
+      cr_pad.style.top = `${(rsy / 255 * 10)}vw`;
+      cr_pad.style.left = `${(rsx / 255 * 10)}vw`;
+
+      button_send &= ~OrbisPadButton.ORBIS_PAD_BUTTON_SHARE;
+
+      let touch_num = 0;
+      if (touchPoint1MoveEnabled) touch_num++;
+      if (touchPoint2MoveEnabled) touch_num++;
+
+      let data = [Number(pad.value), button_send, lsx, lsy, rsx, rsy, left2_send, right2_send, touch_num];
+      if (touchPoint1MoveEnabled) data.push(touchPoint1Id, touchPoint1X, touchPoint1Y);
+      if (touchPoint2MoveEnabled) data.push(touchPoint2Id, touchPoint2X, touchPoint2Y);
+
+      if (JSON.stringify(lastSentData) === JSON.stringify(data)) return;
+      lastSentData = data.slice();
+      rpc.callVoid('u', data);
+    }
+
+    cl_pad.style.top = "5vw";
+    cl_pad.style.left = "5vw";
+    cr_pad.style.top = "5vw";
+    cr_pad.style.left = "5vw";
+
+    function sendButtonDown(btn) { MouseButton |= btn; sendData(); }
+    function sendButtonUp(btn) { MouseButton &= ~btn; sendData(); }
+    function clamp(value, min, max) { return Math.min(Math.max(value, min), max); }
+
+    let leftStickStartX = 0, leftStickStartY = 0, rightStickStartX = 0, rightStickStartY = 0;
+    let leftStickMoveFinger = -1, rightStickMoveFinger = -1, touchPointMoveFinger = -1;
+
+    cl_pad.addEventListener("mousedown", function (ev) {
+      leftStickStartX = ev.pageX; leftStickStartY = ev.pageY; leftStickMoveFinger = 1;
+    });
+    cl_pad.addEventListener("touchstart", function (ev) {
+      leftStickStartX = ev.changedTouches[0].pageX; leftStickStartY = ev.changedTouches[0].pageY; leftStickMoveFinger = ev.changedTouches[0].identifier;
+    });
+    cr_pad.addEventListener("mousedown", function (ev) {
+      rightStickStartX = ev.pageX; rightStickStartY = ev.pageY; rightStickMoveFinger = 1;
+    });
+    cr_pad.addEventListener("touchstart",function (ev) {
+      rightStickStartX = ev.changedTouches[0].pageX; rightStickStartY = ev.changedTouches[0].pageY; rightStickMoveFinger = ev.changedTouches[0].identifier;
+    });
+
+    function enableTouchPoint1() {
+      touchPoint1MoveEnabled = true; touchPoint1Id = genNewTouchId(); touch1.style.display = 'inline-block';
+    }
+    function disableTouchPoint1() {
+      touchPoint1X = 0; touchPoint1Y = 0; touchPoint1MoveEnabled = false; touch1.style.display = 'none';
+    }
+    function touchPoint1Down(ev) {
+      touchPoint1Pressed = true; touchPoint1PressedTime = ev.timeStamp; touch1.style.backgroundColor = "#00ffcc"; sendButtonDown(OrbisPadButton.ORBIS_PAD_BUTTON_TOUCH_PAD);
+    }
+    function touchPoint1Up(ev) {
+      touchPoint1Pressed = false; touch1.style.backgroundColor = "gray";
+      if (touchPoint2MoveEnabled && touchPoint2Pressed) return;
+      if (ev.timeStamp - touchPoint1PressedTime < minHoldTime) {
+        setTimeout(() => { sendButtonUp(OrbisPadButton.ORBIS_PAD_BUTTON_TOUCH_PAD); }, minHoldTime - (ev.timeStamp - touchPoint1PressedTime));
+      } else { sendButtonUp(OrbisPadButton.ORBIS_PAD_BUTTON_TOUCH_PAD); }
+    }
+
+    function enableTouchPoint2() {
+      touchPoint2MoveEnabled = true; touchPoint2Id = genNewTouchId(); touch2.style.display = 'inline-block';
+    }
+    function disableTouchPoint2() {
+      touchPoint2X = 0; touchPoint2Y = 0; touchPoint2MoveEnabled = false; touch2.style.display = 'none';
+    }
+    function touchPoint2Down(ev) {
+      touchPoint2Pressed = true; touchPoint2PressedTime = ev.timeStamp; touch2.style.backgroundColor = "#00ffcc"; sendButtonDown(OrbisPadButton.ORBIS_PAD_BUTTON_TOUCH_PAD);
+    }
+    function touchPoint2Up(ev) {
+      touchPoint2Pressed = false; touch2.style.backgroundColor = "gray";
+      if (touchPoint1MoveEnabled && touchPoint1Pressed) return;
+      if (ev.timeStamp - touchPoint2PressedTime < minHoldTime) {
+        setTimeout(() => { sendButtonUp(OrbisPadButton.ORBIS_PAD_BUTTON_TOUCH_PAD); }, minHoldTime - (ev.timeStamp - touchPoint2PressedTime));
+      } else { sendButtonUp(OrbisPadButton.ORBIS_PAD_BUTTON_TOUCH_PAD); }
+    }
+
+    btn16.addEventListener("mouseleave", function (ev) { disableTouchPoint1(); touchPoint1Up(ev); });
+    btn16.addEventListener("mouseenter", function (ev) {
+      if (leftStickMoveFinger >= 0 || rightStickMoveFinger >= 0) return;
+      if(ev.buttons > 0) touchPoint1Down(ev);
+      enableTouchPoint1();
+    });
+    btn16.addEventListener("mousedown", function (ev) { touchPoint1Down(ev); ev.preventDefault(); });
+    btn16.addEventListener("mouseup", function (ev) { touchPoint1Up(ev); ev.preventDefault(); });
+    btn16.addEventListener("touchstart", function (ev) {
+      let touch = ev.changedTouches[0];
+      if (!touchPoint1MoveEnabled) {
+        touchPoint1MoveFinger = touch.identifier;
+        updateTouch1Position(touch.pageX, touch.pageY);
+        enableTouchPoint1(); touchPoint1Down(ev);
+      } else if (!touchPoint2MoveEnabled) {
+        touchPoint2MoveFinger = touch.identifier;
+        updateTouch2Position(touch.pageX, touch.pageY);
+        enableTouchPoint2(); touchPoint2Down(ev);
+      }
+      ev.preventDefault();
+    });
+    btn16.addEventListener("touchend", function (ev) {
+      let touch = ev.changedTouches[0];
+      if (touchPoint1MoveEnabled && touchPoint1MoveFinger === touch.identifier) { disableTouchPoint1(); touchPoint1Up(ev); }
+      if (touchPoint2MoveEnabled && touchPoint2MoveFinger === touch.identifier) { disableTouchPoint2(); touchPoint2Up(ev); }
+      ev.preventDefault();
+    });
+
+    function genNewTouchId() {
+      touchPointMoveFinger++;
+      touchPointMoveFinger %= MAX_TOUCH_ID + 1;
+      return touchPointMoveFinger;
+    }
+    function updateLeftStickPosition(event_x, event_y) {
+      MouseLeftStickX = clamp(((event_x - leftStickStartX) / cl_pad.offsetWidth + 1) / 2 * 255, 0, 255);
+      MouseLeftStickY = clamp(((event_y - leftStickStartY) / cl_pad.offsetHeight + 1) / 2 * 255, 0, 255);
+      sendData();
+    }
+    function updateRightStickPosition(event_x, event_y) {
+      MouseRightStickX = clamp(((event_x - rightStickStartX) / cl_pad.offsetWidth + 1) / 2 * 255, 0, 255);
+      MouseRightStickY = clamp(((event_y - rightStickStartY) / cl_pad.offsetHeight + 1) / 2 * 255, 0, 255);
+      sendData();
+    }
+    function updateTouch1PositionExt(x, y) {
+      x = clamp(x, 0, 1); y = clamp(y, 0, 1);
+      touchPoint1X = Math.floor(x * MAX_TOUCH_PAD_WIDTH);
+      touchPoint1Y = Math.floor(y * MAX_TOUCH_PAD_HEIGHT);
+      touch1.style.left = `${btn16.offsetWidth * x - touch1.offsetWidth / 2}px`;
+      touch1.style.top = `${btn16.offsetHeight * y - touch1.offsetHeight / 2}px`;
+      sendData();
+    }
+    function updateTouch1Position(event_x, event_y) {
+      let x = (event_x - btn16.offsetLeft) / btn16.offsetWidth;
+      let y = (event_y - btn16.offsetTop - btn16.offsetParent.offsetTop) / btn16.offsetHeight;
+      updateTouch1PositionExt(x, y);
+    }
+    function updateTouch2PositionExt(x, y) {
+      x = clamp(x, 0, 1); y = clamp(y, 0, 1);
+      touchPoint2X = Math.floor(x * MAX_TOUCH_PAD_WIDTH);
+      touchPoint2Y = Math.floor(y * MAX_TOUCH_PAD_HEIGHT);
+      touch2.style.left = `${btn16.offsetWidth * x - touch2.offsetWidth / 2}px`;
+      touch2.style.top = `${btn16.offsetHeight * y - touch2.offsetHeight / 2}px`;
+      sendData();
+    }
+    function updateTouch2Position(event_x, event_y) {
+      let x = (event_x - btn16.offsetLeft) / btn16.offsetWidth;
+      let y = (event_y - btn16.offsetTop - btn16.offsetParent.offsetTop) / btn16.offsetHeight;
+      updateTouch2PositionExt(x, y);
+    }
+
+    document.addEventListener("mousemove", function (ev) {
+      if (leftStickMoveFinger >= 0) updateLeftStickPosition(ev.pageX, ev.pageY);
+      if (rightStickMoveFinger >= 0) updateRightStickPosition(ev.pageX, ev.pageY);
+      if (touchPoint1MoveEnabled) updateTouch1Position(ev.pageX, ev.pageY);
+    });
+    document.addEventListener("touchmove", function (ev) {
+      for (let i of ev.touches) {
+        if (leftStickMoveFinger === i.identifier) updateLeftStickPosition(i.pageX, i.pageY);
+        else if (rightStickMoveFinger === i.identifier) updateRightStickPosition(i.pageX, i.pageY);
+        else {
+          if (touchPoint1MoveEnabled && touchPoint1MoveFinger === i.identifier) updateTouch1Position(i.pageX, i.pageY);
+          else if (touchPoint2MoveEnabled && touchPoint2MoveFinger === i.identifier) updateTouch2Position(i.pageX, i.pageY);
+        }
+      }
+    });
+
+    document.addEventListener("mouseup", function (ev) {
+      MouseLeftStickX = 128; MouseLeftStickY = 128; MouseRightStickX = 128; MouseRightStickY = 128;
+      leftStickMoveFinger = -1; rightStickMoveFinger = -1; sendData();
+    });
+    document.addEventListener("touchend", function (ev) {
+      for (let i of ev.changedTouches) {
+        if (leftStickMoveFinger === i.identifier) {
+          MouseLeftStickX = 128; MouseLeftStickY = 128; leftStickMoveFinger = -1; sendData();
+        } else if (rightStickMoveFinger === i.identifier) {
+          MouseRightStickX = 128; MouseRightStickY = 128; rightStickMoveFinger = -1; sendData();
+        }
+      }
+    });
+
+    for (let i = 0; i < btnMap.length; i++) {
+      if (btnMap[i].value === OrbisPadButton.ORBIS_PAD_BUTTON_TOUCH_PAD) continue;
+      const keyDown = function(ev) {
+        btnMap[i].downStamp = ev.timeStamp; sendButtonDown(btnMap[i].value); ev.preventDefault();
+      }
+      const keyUp = function(ev) {
+        if (btnMap[i].downStamp && ev.timeStamp - btnMap[i].downStamp < minHoldTime) {
+          setTimeout(() => { sendButtonUp(btnMap[i].value); }, minHoldTime - (ev.timeStamp - btnMap[i].downStamp));
+        } else { sendButtonUp(btnMap[i].value); }
+        ev.preventDefault();
+      }
+      btnMap[i].btn.addEventListener("touchstart", keyDown);
+      btnMap[i].btn.addEventListener("mousedown", keyDown);
+      btnMap[i].btn.addEventListener("touchend", keyUp);
+      btnMap[i].btn.addEventListener("mouseup", keyUp);
+    }
+
+    let controllers = {};
+    let rAF = window.requestAnimationFrame;
+
+    function addGamepad(gamepad) {
+      msg.innerHTML = "External Gamepad Active";
+      controllers[gamepad.index] = gamepad;
+      rAF(updateStatus);
+    }
+    function removeGamepad(gamepad) {
+      msg.innerHTML = "";
+      delete controllers[gamepad.index];
+    }
+    window.addEventListener("gamepadconnected", (e) => { addGamepad(e.gamepad); });
+    window.addEventListener("gamepaddisconnected", (e) => { removeGamepad(e.gamepad); });
+
+    function processVibration(params) {
+      let pad_index = params[0];
+      let large_motor = params[1];
+      let small_motor = params[2];
+
+      if (pad_index !== Number(pad.value)) return;
+      for (let j in controllers) {
+        let controller = controllers[j];
+        if (!controller.vibrationActuator || controller.vibrationActuator.type !== "dual-rumble") continue;
+        if (small_motor === 0 && large_motor === 0) {
+          controller.vibrationActuator.reset(); break;
+        }
+        controller.vibrationActuator.playEffect("dual-rumble", {
+          startDelay: 0, duration: 100,
+          weakMagnitude: small_motor / 255, strongMagnitude: large_motor / 255,
+        });
+        break;
+      }
+    }
+
+    function processLightbar(params) {
+      let pad_index = params[0];
+      if (pad_index !== Number(pad.value)) return;
+      btn16.style.borderColor = `rgb(${params[1]}, ${params[2]}, ${params[3]})`;
+      btn16.style.boxShadow = `0 0 15px rgb(${params[1]}, ${params[2]}, ${params[3]})`;
+    }
+
+    function resetLightbar() {
+      let index = Number(pad.value);
+      processLightbar([index].concat(lightbarMap[index]));
+    }
+    resetLightbar();
+
+    function updateStatus() {
+      let gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+      for (let i = 0; i < gamepads.length; i++) {
+        if (gamepads[i] && (gamepads[i].index in controllers)) {
+          controllers[gamepads[i].index] = gamepads[i];
+        }
+      }
+
+      for (let j in controllers) {
+        let controller = controllers[j];
+        let buttons = 0;
+        for (let i = 0; i < controller.buttons.length && i < btnMap.length; i++) {
+          let val = controller.buttons[i];
+          let pressed = typeof(val) == "object" ? val.pressed : val == 1.0;
+          if (btnMap[i].value === OrbisPadButton.ORBIS_PAD_BUTTON_L2) {
+            left2 = Math.round(val.value * 255);
+            if (left2 > 128) buttons |= OrbisPadButton.ORBIS_PAD_BUTTON_L2;
+          } else if (btnMap[i].value === OrbisPadButton.ORBIS_PAD_BUTTON_R2) {
+            right2 = Math.round(val.value * 255);
+            if (right2 > 128) buttons |= OrbisPadButton.ORBIS_PAD_BUTTON_R2;
+          } else if (pressed){
+            buttons |= btnMap[i].value;
+          }
+        }
+        GamepadButton = buttons;
+        leftStickX = Math.round((controller.axes[0] + 1) / 2 * 255);
+        leftStickY = Math.round((controller.axes[1] + 1) / 2 * 255);
+        rightStickX = Math.round((controller.axes[2] + 1) / 2 * 255);
+        rightStickY = Math.round((controller.axes[3] + 1) / 2 * 255);
+        sendData();
+        break;
+      }
+      rAF(updateStatus);
+    }
+
+    const keyboardMap = {
+      "KeyI": OrbisPadButton.ORBIS_PAD_BUTTON_UP,
+      "KeyK": OrbisPadButton.ORBIS_PAD_BUTTON_DOWN,
+      "KeyJ": OrbisPadButton.ORBIS_PAD_BUTTON_LEFT,
+      "KeyL": OrbisPadButton.ORBIS_PAD_BUTTON_RIGHT,
+      "KeyQ": OrbisPadButton.ORBIS_PAD_BUTTON_L1,
+      "KeyE": OrbisPadButton.ORBIS_PAD_BUTTON_R1,
+      "Digit1": OrbisPadButton.ORBIS_PAD_BUTTON_L2,
+      "Digit3": OrbisPadButton.ORBIS_PAD_BUTTON_R2,
+      "KeyZ": OrbisPadButton.ORBIS_PAD_BUTTON_L3,
+      "KeyC": OrbisPadButton.ORBIS_PAD_BUTTON_R3,
+      "KeyO": OrbisPadButton.ORBIS_PAD_BUTTON_OPTIONS,
+      "KeyU": OrbisPadButton.ORBIS_PAD_BUTTON_SHARE,
+      "Enter": OrbisPadButton.ORBIS_PAD_BUTTON_TRIANGLE,
+      "Backspace": OrbisPadButton.ORBIS_PAD_BUTTON_SQUARE,
+      "Delete": OrbisPadButton.ORBIS_PAD_BUTTON_SQUARE,
+      "Space": OrbisPadButton.ORBIS_PAD_BUTTON_CROSS,
+      "Escape": OrbisPadButton.ORBIS_PAD_BUTTON_CIRCLE,
+    };
+
+    for (let i of btnMap) {
+      for (let j in keyboardMap) {
+        if (keyboardMap[j] === i.value) {
+          i.btn.innerHTML = `${i.text}<span>${j.replace('Key','').replace('Digit','')}</span>`;
+        }
+      }
+    }
+
+    const touchMap = {
+      "KeyT": { y: 0.25, x: 0.25 },
+      "KeyY": { y: 0.25, x: 0.75 },
+      "KeyG": { y: 0.75, x: 0.25 },
+      "KeyH": { y: 0.75, x: 0.75 },
+    };
+
+    const stickMap = {
+        "KeyW": { down: () => leftStickY = 0, up: () => leftStickY = 128 },
+        "KeyS": { down: () => leftStickY = 255, up: () => leftStickY = 128 },
+        "KeyA": { down: () => leftStickX = 0, up: () => leftStickX = 128 },
+        "KeyD": { down: () => leftStickX = 255, up: () => leftStickX = 128 },
+        "ArrowUp": { down: () => rightStickY = 0, up: () => rightStickY = 128 },
+        "ArrowDown": { down: () => rightStickY = 255, up: () => rightStickY = 128 },
+        "ArrowLeft": { down: () => rightStickX = 0, up: () => rightStickX = 128 },
+        "ArrowRight": { down: () => rightStickX = 255, up: () => rightStickX = 128 },
+    };
+
+    window.addEventListener("keydown", (ev) => {
+      if (ev.repeat || document.activeElement.tagName === "INPUT") return;
+      if (ev.code in stickMap) { stickMap[ev.code].down(); sendData(); }
+      else if (ev.code in keyboardMap) {
+        let b = keyboardMap[ev.code];
+        if (b === OrbisPadButton.ORBIS_PAD_BUTTON_L2) left2 = 255;
+        else if (b === OrbisPadButton.ORBIS_PAD_BUTTON_R2) right2 = 255;
+        GamepadButton |= b; sendData();
+      } else if (ev.code in touchMap) {
+        let b = touchMap[ev.code]; GamepadButton |= OrbisPadButton.ORBIS_PAD_BUTTON_TOUCH_PAD;
+        enableTouchPoint1(); updateTouch1PositionExt(b.x, b.y); touchPoint1Down(ev);
+      }
+      ev.preventDefault();
+    });
+
+    window.addEventListener("keyup", (ev) => {
+      if (document.activeElement.tagName === "INPUT") return;
+      if (ev.code in stickMap) { stickMap[ev.code].up(); sendData(); }
+      else if (ev.code in keyboardMap) {
+        let b = keyboardMap[ev.code];
+        if (b === OrbisPadButton.ORBIS_PAD_BUTTON_L2) left2 = 0;
+        else if (b === OrbisPadButton.ORBIS_PAD_BUTTON_R2) right2 = 0;
+        GamepadButton &= ~b; sendData();
+      } else if (ev.code in touchMap) {
+        GamepadButton &= ~OrbisPadButton.ORBIS_PAD_BUTTON_TOUCH_PAD;
+        disableTouchPoint1(); touchPoint1Up(ev);
+      }
+      ev.preventDefault();
+    });
+  </script>
+</html>

@@ -1,0 +1,35 @@
+name: Build Plugin
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-prx:
+    runs-on: ubuntu-latest
+    container: xfangfang/goldhen_plugin:latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Compile PS4 PRX
+        run: |
+          # Prevent Git ownership verification errors within the runner workspace
+          git config --global --add safe.directory `pwd`
+          
+          # Configure CMake pointing specifically to the PS4 Toolchain file
+          cmake -B build -DCMAKE_TOOLCHAIN_FILE=cmake/ps4.cmake -DCMAKE_BUILD_TYPE=Release
+          
+          # Compile the target binaries
+          cmake --build build
+
+      - name: Upload Compiled Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: remote_pad.prx
+          path: build/remote_pad.prx

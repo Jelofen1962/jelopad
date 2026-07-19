@@ -1,0 +1,10 @@
+
+# CMake build directory
+cmake-build*/
+build*/
+
+.idea/
+
+*.gz
+
+*.ini
