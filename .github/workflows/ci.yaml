@@ -1,9 +1,7 @@
-name: Build Plugin
+name: Build
 
 on:
   push:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
@@ -11,29 +9,41 @@ jobs:
     runs-on: ubuntu-latest
     container: xfangfang/goldhen_plugin:latest
     steps:
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Compile PS4 PRX
+      - name: Build
         run: |
-          # Prevent Git ownership verification errors within the runner workspace
           git config --global --add safe.directory `pwd`
           
-          # Configure CMake bypassing compiler testing
+          # Fail-safe: Clone dependencies if the submodules are unpopulated
+          if [ ! -f "lib/mongoose/mongoose.c" ]; then
+            echo "Mongoose source missing, performing fail-safe clone..."
+            rm -rf lib/mongoose
+            git clone --depth 1 https://github.com/cesanta/mongoose.git lib/mongoose
+          fi
+
+          if [ ! -f "lib/GoldHEN_Plugins_SDK/include/Common.h" ]; then
+            echo "GoldHEN Plugins SDK source missing, performing fail-safe clone..."
+            rm -rf lib/GoldHEN_Plugins_SDK
+            git clone --depth 1 https://github.com/xfangfang/GoldHEN_Plugins_SDK.git lib/GoldHEN_Plugins_SDK
+          fi
+
+          # Configure CMake bypassing compiler verification checks
           cmake -B build \
             -DCMAKE_TOOLCHAIN_FILE=cmake/ps4.cmake \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_C_COMPILER_WORKS=1 \
             -DCMAKE_CXX_COMPILER_WORKS=1
-          
-          # Compile the target binaries
+
+          # Build targets
           cmake --build build
 
-      - name: Upload Compiled Artifact
+      - name: Upload dist
         uses: actions/upload-artifact@v4
         with:
-          name: remote_pad.prx
-          path: build/remote_pad.prx
+          name: jelopad.prx
+          path: build/jelopad.prx
