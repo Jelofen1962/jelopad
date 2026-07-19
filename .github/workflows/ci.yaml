@@ -32,8 +32,9 @@ jobs:
             git clone --depth 1 https://github.com/xfangfang/GoldHEN_Plugins_SDK.git lib/GoldHEN_Plugins_SDK
           fi
 
-          # Clear the pre-existing build directory within the SDK to satisfy busybox mkdir
+          # Clear the pre-existing build directories within the SDK and its CRT subdirectory
           rm -rf lib/GoldHEN_Plugins_SDK/build
+          rm -rf lib/GoldHEN_Plugins_SDK/crt/build
 
           # Configure CMake bypassing compiler checks
           cmake -B build \
