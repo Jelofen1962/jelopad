@@ -8,7 +8,7 @@ if (NOT DEFINED ENV{OO_PS4_TOOLCHAIN})
 endif ()
 set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/cmake/ps4.cmake" CACHE PATH "toolchain file")
 
-project(jelopad C CXX ASM)
+project(jelopad C ASM)
 git_info(GIT_TAG_VERSION GIT_TAG_SHORT)
 
 add_subdirectory(lib)
