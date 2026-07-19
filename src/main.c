@@ -13,13 +13,12 @@ attr_public const char *g_pluginDesc = "Control your PS4 using Any Controllers w
 attr_public const char *g_pluginAuth = "xfangfang";
 attr_public uint32_t g_pluginVersion = 0x00000120; // 1.2.0
 
-#define PLUGIN_CONFIG_PATH GOLDHEN_PATH "/remote_pad.ini"
 #define PLUGIN_DEFAULT_SECTION "default"
 
 RemoteUserService *g_remoteUserService = NULL;
 static RemotePadService *remotePad;
 
-static bool prxLoaded = false;
+static bool prxLoaded = false; 
 
 HOOK_DEFINE(scePadInit, void) {
     if (remotePad->initDriver() != SCE_OK) {

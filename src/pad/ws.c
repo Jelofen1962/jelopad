@@ -5,6 +5,13 @@
 
 #include "pad.h"
 #include "utils.h"
+#include "user.h"
+#include "config.h"
+
+// Avoid naming collision with system socket/IP macros
+#ifdef ip
+#undef ip
+#endif
 
 typedef struct wsDriverData {
     struct mg_mgr mgr;
@@ -60,13 +67,13 @@ static bool mg_socketpair(MG_SOCKET_TYPE sp[2], union usa usa[2]) {
 static void tomgaddr(union usa *usa, struct mg_addr *a, bool is_ip6) {
     a->is_ip6 = is_ip6;
     a->port = usa->sin.sin_port;
-    memcpy(&a->ip, &usa->sin.sin_addr, sizeof(uint32_t));
+    memcpy(a->ip, &usa->sin.sin_addr, sizeof(uint32_t));
 #if MG_ENABLE_IPV6
     if (is_ip6) {
-    memcpy(a->ip, &usa->sin6.sin6_addr, sizeof(a->ip));
-    a->port = usa->sin6.sin6_port;
-    a->scope_id = (uint8_t) usa->sin6.sin6_scope_id;
-  }
+        memcpy(a->ip, &usa->sin6.sin6_addr, sizeof(a->ip));
+        a->port = usa->sin6.sin6_port;
+        a->scope_id = (uint8_t) usa->sin6.sin6_scope_id;
+    }
 #endif
 }
 
@@ -83,15 +90,15 @@ static void ws_wakeup_fn(struct mg_connection *c, int ev, void *ev_data) {
         }
         c->recv.len = 0;  // Consume received data
     } else if (ev == MG_EV_CLOSE) {
-        close(c->mgr->pipe);         // When we're closing, close the other
-        c->mgr->pipe = MG_INVALID_SOCKET;  // side of the socketpair, too
+        close(c->mgr->pipe.fd);         // When we're closing, close the other
+        c->mgr->pipe.fd = MG_INVALID_SOCKET;  // side of the socketpair, too
     }
     (void) ev_data;
 }
 
 static bool ws_wakeup_init(struct mg_mgr *mgr) {
     bool ok = false;
-    if (mgr->pipe == MG_INVALID_SOCKET) {
+    if (mgr->pipe.fd == MG_INVALID_SOCKET) {
         union usa usa[2];
         MG_SOCKET_TYPE sp[2] = {MG_INVALID_SOCKET, MG_INVALID_SOCKET};
         struct mg_connection *c = NULL;
@@ -104,7 +111,7 @@ static bool ws_wakeup_init(struct mg_mgr *mgr) {
         } else {
             tomgaddr(&usa[0], &c->rem, false);
             MG_DEBUG(("%lu %p pipe %lu", c->id, c->fd, (unsigned long) sp[0]));
-            mgr->pipe = sp[0];
+            mgr->pipe.fd = sp[0];
             ok = true;
         }
     }
@@ -112,13 +119,13 @@ static bool ws_wakeup_init(struct mg_mgr *mgr) {
 }
 
 static bool ws_wakeup(struct mg_mgr *mgr, uint8_t type, uint8_t index, const void *buf, size_t len) {
-    if (mgr->pipe != MG_INVALID_SOCKET) {
+    if (mgr->pipe.fd != MG_INVALID_SOCKET) {
         size_t msg_len = len + sizeof(type) + sizeof(index);
         char *extended_buf = (char *) alloca(msg_len);
         memcpy(extended_buf, &type, sizeof(type));
         memcpy(extended_buf + sizeof(type), &index, sizeof(index));
         memcpy(extended_buf + sizeof(type) + sizeof(index), buf, len);
-        send(mgr->pipe, extended_buf, msg_len, 0);
+        send(mgr->pipe.fd, extended_buf, msg_len, 0);
         return true;
     }
     return false;
@@ -300,8 +307,6 @@ static void fn(struct mg_connection *c, int ev, void *ev_data) {
     }
 }
 
-// Add these RPC helper functions into src/pad/ws.c before websocketThread
-
 static void rpc_config_get(struct mg_rpc_req *r) {
     if (!g_remoteUserService) {
         mg_rpc_err(r, 500, "User service uninitialized");
@@ -329,7 +334,8 @@ static void rpc_config_set(struct mg_rpc_req *r) {
     }
 
     long index = mg_json_get_long(r->frame, "$.params[0]", -1);
-    bool enabled = mg_json_get_bool(r->frame, "$.params[1]", true);
+    bool enabled = true;
+    mg_json_get_bool(r->frame, "$.params[1]", &enabled);
     long userId = mg_json_get_long(r->frame, "$.params[2]", 0);
     char *name = mg_json_get_str(r->frame, "$.params[3]");
 
@@ -372,7 +378,6 @@ static void rpc_config_set(struct mg_rpc_req *r) {
     mg_rpc_err(r, 400, "Invalid configuration variables");
 }
 
-// Inside websocketThread(), register the new RPC endpoints:
 void *websocketThread(void *thread_arg) {
     wsDriverData *ctx = (wsDriverData *) thread_arg;
     mg_mgr_init(&ctx->mgr);

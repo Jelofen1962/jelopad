@@ -2,6 +2,7 @@
 #include <stdbool.h>
 
 #define GOLDHEN_PATH "/data/GoldHEN"
+#define PLUGIN_CONFIG_PATH GOLDHEN_PATH "/remote_pad.ini"
 
 #define TEX_ICON_SYSTEM "cxml://psnotification/tex_icon_system"
 #define MAX_PATH_ 260
