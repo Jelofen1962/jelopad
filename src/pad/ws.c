@@ -1,10 +1,4 @@
 #include <string.h>
-
-// Undefine 'ip' before mongoose.h is parsed to ensure 'struct mg_addr' is defined with literal 'ip'
-#ifdef ip
-#undef ip
-#endif
-
 #include <mongoose.h>
 #include <orbis/libkernel.h>
 #include <ifaddrs.h>
@@ -13,11 +7,6 @@
 #include "utils.h"
 #include "user.h"
 #include "config.h"
-
-// Undefine 'ip' again after other headers to ensure we can access 'a->ip' literally
-#ifdef ip
-#undef ip
-#endif
 
 typedef struct wsDriverData {
     struct mg_mgr mgr;
@@ -70,15 +59,22 @@ static bool mg_socketpair(MG_SOCKET_TYPE sp[2], union usa usa[2]) {
     return success;
 }
 
+// Layout-matched struct to bypass toolchain naming conflict with the field 'ip'
+struct my_mg_addr {
+    uint16_t port;
+    bool is_ip6;
+    uint8_t addr_bytes[16];
+};
+
 static void tomgaddr(union usa *usa, struct mg_addr *a, bool is_ip6) {
-    a->is_ip6 = is_ip6;
-    a->port = usa->sin.sin_port;
-    memcpy(a->ip, &usa->sin.sin_addr, sizeof(uint32_t));
+    struct my_mg_addr *ma = (struct my_mg_addr *) a;
+    ma->is_ip6 = is_ip6;
+    ma->port = usa->sin.sin_port;
+    memcpy(ma->addr_bytes, &usa->sin.sin_addr, sizeof(uint32_t));
 #if MG_ENABLE_IPV6
     if (is_ip6) {
-        memcpy(a->ip, &usa->sin6.sin6_addr, sizeof(a->ip));
-        a->port = usa->sin6.sin6_port;
-        a->scope_id = (uint8_t) usa->sin6.sin6_scope_id;
+        memcpy(ma->addr_bytes, &usa->sin6.sin6_addr, 16);
+        ma->port = usa->sin6.sin6_port;
     }
 #endif
 }
