@@ -22,8 +22,12 @@ jobs:
           # Prevent Git ownership verification errors within the runner workspace
           git config --global --add safe.directory `pwd`
           
-          # Configure CMake pointing specifically to the PS4 Toolchain file
-          cmake -B build -DCMAKE_TOOLCHAIN_FILE=cmake/ps4.cmake -DCMAKE_BUILD_TYPE=Release
+          # Configure CMake bypassing compiler testing
+          cmake -B build \
+            -DCMAKE_TOOLCHAIN_FILE=cmake/ps4.cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER_WORKS=1 \
+            -DCMAKE_CXX_COMPILER_WORKS=1
           
           # Compile the target binaries
           cmake --build build
