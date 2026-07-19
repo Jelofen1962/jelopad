@@ -30,7 +30,7 @@ HOOK_DEFINE(scePadInit, void) {
 }
 
 HOOK_DEFINE(scePadOpen, int32_t userId, int32_t type, int32_t index, void *param) {
-    RemoteUser *user = remoteUserService->getUser(userId);
+    RemoteUser *user = g_remoteUserService->getUser(userId);
     if (user != NULL)
         return remotePad->open(userId, type, user->index, param);
 
@@ -44,7 +44,7 @@ HOOK_DEFINE(scePadClose, int32_t handle) {
 }
 
 HOOK_DEFINE(scePadGetHandle, int32_t userId, uint32_t controller_type, uint32_t controller_index) {
-    RemoteUser *user = remoteUserService->getUser(userId);
+    RemoteUser *user = g_remoteUserService->getUser(userId);
     if (user != NULL)
         return remotePad->getHandle(userId, controller_type, controller_index);
     return HOOK_PASS(scePadGetHandle, userId, controller_type, controller_index);
@@ -124,20 +124,20 @@ HOOK_DEFINE(scePadDeviceClassGetExtendedInformation, int32_t handle, OrbisPadDev
 }
 
 HOOK_DEFINE(sceUserServiceGetUserName, int32_t userId, char *username, size_t size) {
-    if (remoteUserService->getUserName(userId, username, size) == SCE_OK)
+    if (g_remoteUserService->getUserName(userId, username, size) == SCE_OK)
         return SCE_OK;
     return HOOK_PASS(sceUserServiceGetUserName, userId, username, size);
 }
 
 HOOK_DEFINE(sceUserServiceGetUserColor, int32_t userId, OrbisUserServiceUserColor *color) {
-    if (remoteUserService->getUserColor(userId, color) == SCE_OK)
+    if (g_remoteUserService->getUserColor(userId, color) == SCE_OK)
         return SCE_OK;
     return HOOK_PASS(sceUserServiceGetUserColor, userId, color);
 }
 
 inline static RemoteUser *findFreeUser(int32_t *index) {
     while (*index < REMOTE_PAD_MAX_USERS) {
-        RemoteUser *user = &remoteUserService->users[*index];
+        RemoteUser *user = &g_remoteUserService->users[*index];
         if (user->enabled && !user->isSystemUserId)
             return user;
         (*index)++;
@@ -155,7 +155,7 @@ HOOK_DEFINE(sceUserServiceGetLoginUserIdList, OrbisUserServiceLoginUserIdList *l
             continue;
 
         for (int j = 0; j < REMOTE_PAD_MAX_USERS; j++) {
-            RemoteUser *user = remoteUserService->getUserByIndex(j);
+            RemoteUser *user = g_remoteUserService->getUserByIndex(j);
             if (user != NULL && user->userId == list->userId[i])
                 user->isSystemUserId = true;
         }
@@ -175,7 +175,7 @@ HOOK_DEFINE(sceUserServiceGetLoginUserIdList, OrbisUserServiceLoginUserIdList *l
 
     // Disable extra remote users
     for (int i = remoteUserIndex; i < REMOTE_PAD_MAX_USERS; i++) {
-        RemoteUser *user = remoteUserService->getUserByIndex(remoteUserIndex++);
+        RemoteUser *user = g_remoteUserService->getUserByIndex(remoteUserIndex++);
         if (user != NULL && !user->isSystemUserId)
             user->enabled = false;
     }
@@ -193,7 +193,7 @@ HOOK_DEFINE(sceUserServiceGetEvent, OrbisUserServiceEvent *event) {
     static bool no_event = false;
     if (!no_event && ret == ORBIS_USER_SERVICE_ERROR_NO_EVENT && loggedUserCount < ORBIS_USER_SERVICE_MAX_LOGIN_USERS) {
         for (int i = 0; i < REMOTE_PAD_MAX_USERS; i++) {
-            RemoteUser *user = remoteUserService->getUserByIndex(i);
+            RemoteUser *user = g_remoteUserService->getUserByIndex(i);
             if (user == NULL || user->isLoggedIn || !user->enabled || user->isSystemUserId)
                 continue;
             user->isLoggedIn = true;
@@ -212,12 +212,12 @@ int32_t load_config(ini_table_s *table, const char *section_name) {
     char key[16];
     for (int i = 0; i < REMOTE_PAD_MAX_USERS; i++) {
         snprintf(key, sizeof(key), "user%d_enabled", i);
-        ini_table_get_entry_as_bool(table, section_name, key, &remoteUserService->users[i].enabled);
+        ini_table_get_entry_as_bool(table, section_name, key, &g_remoteUserService->users[i].enabled);
         snprintf(key, sizeof(key), "user%d_id", i);
-        ini_table_get_entry_as_int(table, section_name, key, &remoteUserService->users[i].userId);
+        ini_table_get_entry_as_int(table, section_name, key, &g_remoteUserService->users[i].userId);
         snprintf(key, sizeof(key), "user%d_name", i);
         const char *name = ini_table_get_entry(table, section_name, key);
-        remoteUserService->setUserName(remoteUserService->users[i].userId, name);
+        g_remoteUserService->setUserName(g_remoteUserService->users[i].userId, name);
     }
     return 0;
 }
@@ -324,7 +324,7 @@ int32_t attr_public plugin_unload(int32_t argc, const char *argv[]) {
     if (!prxLoaded)
         return 0;
 
-    termRemoteUserService(remoteUserService);
+    termRemoteUserService(g_remoteUserService);
     termRemotePadService(remotePad);
 
     UNHOOK(scePadInit);
