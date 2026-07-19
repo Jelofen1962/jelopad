@@ -35,6 +35,7 @@ jobs:
           # Clear the pre-existing build directories within the SDK and its CRT subdirectory
           rm -rf lib/GoldHEN_Plugins_SDK/build
           rm -rf lib/GoldHEN_Plugins_SDK/crt/build
+          rm -rf lib/GoldHEN_Plugins_SDK/crt  # Also remove the entire crt directory to ensure clean state
 
           # Configure CMake bypassing compiler checks
           cmake -B build \
