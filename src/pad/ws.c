@@ -1,4 +1,10 @@
 #include <string.h>
+
+// Undefine 'ip' before mongoose.h is parsed to ensure 'struct mg_addr' is defined with literal 'ip'
+#ifdef ip
+#undef ip
+#endif
+
 #include <mongoose.h>
 #include <orbis/libkernel.h>
 #include <ifaddrs.h>
@@ -8,7 +14,7 @@
 #include "user.h"
 #include "config.h"
 
-// Avoid naming collision with system socket/IP macros
+// Undefine 'ip' again after other headers to ensure we can access 'a->ip' literally
 #ifdef ip
 #undef ip
 #endif
